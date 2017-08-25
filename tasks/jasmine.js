@@ -179,7 +179,7 @@ module.exports = function(grunt) {
 
     // All of this would be much more straightforward with async/await
     browser.init()
-      .then(function (browser) { return browser.newTab({ privateTab: false }); })
+      .then(function (browser) { return browser.newTab(); })
       .then(function (tab) {
         return tab.goTo(file)
           // Return a promise that resolves when we get the FINISHED event from our ChromeReporter
