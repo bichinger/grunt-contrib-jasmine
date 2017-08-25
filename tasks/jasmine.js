@@ -177,11 +177,6 @@ module.exports = function(grunt) {
       });
     }
 
-    var duration;
-    var finishedResult = {
-      failed: 0
-    };
-    var fails = [];
     // All of this would be much more straightforward with async/await
     browser.init()
       .then(function (browser) { return browser.newTab({ privateTab: false }); })
@@ -196,27 +191,10 @@ module.exports = function(grunt) {
                   .then(function (result) {
                     var events = result.result.value;
                     events.forEach(function (e) {
-                      if (e.type === 'JASMINE_STARTED') {
-                        duration = e.when;
-                      }
-                      if (e.type === 'FINISHED') {
-                        duration = e.when - duration;
-                      }
-                      if (e.type === 'SPEC_FINISHED') {
-                        if (e.payload.status === 'passed') {
-                          process.stdout.write('.');
-                        } else if (e.payload.status === 'pending') {
-                          process.stdout.write('*');
-                        } else if (e.payload.status === 'failed') {
-                          process.stdout.write('x');
-                        }
-                        if (e.payload.failedExpectations.length > 0) {
-                          finishedResult.failed++;
-                          fails.concat(e.payload.failedExpectations);
-                        }
-                      }
+                      phantomjs.emit(e.type, e.payload);
                     });
-                    if (events.length > 0 && events[events.length - 1].type === 'FINISHED') {
+                    // Exit condition
+                    if (events.length > 0 && events[events.length - 1].type === 'jasmine.jasmineDone') {
                       clearInterval(interval);
                       resolve();
                     }
@@ -225,10 +203,9 @@ module.exports = function(grunt) {
             });
           })
           .then(function () {
-            grunt.log.writeln('\nFinished testing (' + (duration / 1000) + ' seconds)');
             return browser.close();
           })
-          .then(function () { cb(false, finishedResult); });
+          .then(function () { cb(false, status); });
       }
       );
   }
@@ -274,9 +251,7 @@ module.exports = function(grunt) {
         suites = {},
         currentSuite;
 
-    status = {
-      failed: 0
-    };
+    status.failed = 0;
 
     function indent(times) {
       return new Array(+times * tabstop).join(' ');
