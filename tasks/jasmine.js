@@ -1,3 +1,4 @@
+/* global Promise:true */
 /*
  * grunt-contrib-jasmine
  * http://gruntjs.com/
@@ -172,7 +173,7 @@ module.exports = function(grunt) {
 
     function consume (tab) {
       return tab.evaluate(function () {
-        return ChromeQueue.splice(0, ChromeQueue.length);
+        return ChromeQueue.splice(0, ChromeQueue.length); // jshint ignore:line
       });
     }
 
@@ -183,48 +184,51 @@ module.exports = function(grunt) {
     var fails = [];
     // All of this would be much more straightforward with async/await
     browser.init()
-      .then(browser => browser.newTab({ privateTab: false }))
-      .then(tab => {
+      .then(function (browser) { return browser.newTab({ privateTab: false }); })
+      .then(function (tab) {
         return tab.goTo(file)
           // Return a promise that resolves when we get the FINISHED event from our ChromeReporter
-          .then(() => new Promise(resolve => {
-            // Periodically evaluate
-            var interval = setInterval(function () {
-              consume(tab)
-                .then(result => {
-                  var events = result.result.value;
-                  events.forEach(e => {
-                    if (e.type === 'JASMINE_STARTED') {
-                      duration = e.when;
-                    }
-                    if (e.type === 'FINISHED') {
-                      duration = e.when - duration;
-                    }
-                    if (e.type === 'SPEC_FINISHED') {
-                      if (e.payload.status === 'passed') {
-                        process.stdout.write('.') 
-                      } else if (e.payload.status === 'pending') {
-                        process.stdout.write('*');
-                      } else if (e.payload.status === 'failed') {
-                        process.stdout.write('x');
+          .then(function () { 
+            return new Promise(function (resolve) {
+              // Periodically evaluate
+              var interval = setInterval(function () {
+                consume(tab)
+                  .then(function (result) {
+                    var events = result.result.value;
+                    events.forEach(function (e) {
+                      if (e.type === 'JASMINE_STARTED') {
+                        duration = e.when;
                       }
-                      if (e.payload.failedExpectations.length > 0) {
-                        finishedResult.failed++;
-                        fails.concat(e.payload.failedExpectations);
+                      if (e.type === 'FINISHED') {
+                        duration = e.when - duration;
                       }
+                      if (e.type === 'SPEC_FINISHED') {
+                        if (e.payload.status === 'passed') {
+                          process.stdout.write('.');
+                        } else if (e.payload.status === 'pending') {
+                          process.stdout.write('*');
+                        } else if (e.payload.status === 'failed') {
+                          process.stdout.write('x');
+                        }
+                        if (e.payload.failedExpectations.length > 0) {
+                          finishedResult.failed++;
+                          fails.concat(e.payload.failedExpectations);
+                        }
+                      }
+                    });
+                    if (events.length > 0 && events[events.length - 1].type === 'FINISHED') {
+                      clearInterval(interval);
+                      resolve();
                     }
-                    // process.stdout.write('.')
-                  })
-                  if (events.length > 0 && events[events.length - 1].type === 'FINISHED') {
-                    clearInterval(interval);
-                    resolve();
-                  }
-                })
-            }, 100);
-          }))
-          .then(() => { grunt.log.writeln('\nFinished testing (' + (duration / 1000) + ' seconds)')})
-          .then(() => browser.close())
-          .then(() => cb(false, finishedResult))
+                  });
+              }, 100);
+            });
+          })
+          .then(function () {
+            grunt.log.writeln('\nFinished testing (' + (duration / 1000) + ' seconds)');
+            return browser.close();
+          })
+          .then(function () { cb(false, finishedResult); });
       }
       );
   }

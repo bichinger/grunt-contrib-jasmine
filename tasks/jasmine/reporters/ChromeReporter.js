@@ -1,3 +1,5 @@
+/* global window:true, jasmine:true */
+
 (function () {
   window.ChromeQueue = [];
 

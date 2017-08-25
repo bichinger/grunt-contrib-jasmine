@@ -48,7 +48,6 @@ browser.init()
                     fails.concat(e.payload.failedExpectations);
                   }
                 }
-                // process.stdout.write('.')
               })
               if (events.length > 0 && events[events.length - 1].type === 'FINISHED') {
                 clearInterval(interval);
