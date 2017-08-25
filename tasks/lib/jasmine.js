@@ -54,13 +54,19 @@ exports.init = function(grunt, phantomjs) {
       }
     }
 
-    exports.copyTempFile(path.join(__dirname, '/../jasmine/reporters/PhantomReporter.js'), path.join(tempDir, 'reporter.js'));
+    var reporter = 'PhantomReporter.js';
+    if (options.browser === 'chrome') {
+      reporter = 'ChromeReporter.js';
+    }
+
+    exports.copyTempFile(path.join(__dirname, '/../jasmine/reporters/' + reporter), path.join(tempDir, 'reporter.js'));
 
     [].concat(jasmineRequire.files.cssFiles, jasmineRequire.files.jsFiles).forEach(function(name) {
       var srcPath = path.join(jasmineRequire.files.path, name);
       exports.copyTempFile(srcPath, path.join(tempDir, name));
     });
 
+    // IMHO This is broken, it will copy all boot files but later only inject boot.js, I don't see the point
     jasmineRequire.files.bootFiles.forEach(function(name) {
       var srcPath = path.join(jasmineRequire.files.bootDir, name);
       exports.copyTempFile(srcPath, path.join(tempDir, name));

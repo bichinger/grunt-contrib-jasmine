@@ -19,6 +19,8 @@ module.exports = function(grunt) {
   var phantomjs = require('grunt-lib-phantomjs').init(grunt),
       chalk = require('chalk'),
       _ = require('lodash');
+  
+  var Chrome = require('simple-headless-chrome');
 
   // local lib
   var jasmine = require('./lib/jasmine').init(grunt, phantomjs);
@@ -71,6 +73,8 @@ module.exports = function(grunt) {
 
     // Merge task-specific options with these defaults.
     var options = this.options({
+      browser: 'phantomjs',
+      headless: false,
       version: '2.2.0',
       timeout: 10000,
       styles: [],
@@ -108,7 +112,14 @@ module.exports = function(grunt) {
     }
 
     var done = this.async();
-    phantomRunner(options, function(err, status) {
+
+    var runner = phantomRunner;
+
+    if (options.browser === 'chrome') {
+      runner = chromeRunner;
+    }
+
+    runner(options, function(err, status) {
       var success = !err && status.failed === 0;
 
       if (err) {
@@ -127,7 +138,7 @@ module.exports = function(grunt) {
 
   });
 
-  function phantomRunner(options, cb) {
+  function __fileOrHost (options) {
     var file = options.outfile;
 
     if (options.host) {
@@ -135,7 +146,91 @@ module.exports = function(grunt) {
         options.host += '/';
       }
       file = options.host + options.outfile;
+    } else {
+      file = path.resolve(file);
+      file = 'file://' + file;
     }
+
+    return file;
+  }
+
+  function chromeRunner(options, cb) {
+    var file = __fileOrHost(options);
+
+    var message = 'Testing Jasmine specs via Chrome';
+
+    if (options.headless) {
+      message += ' (headless)';
+    }
+
+    grunt.verbose.subhead(message).or.writeln(message);
+    grunt.log.writeln('');
+
+    var browser = new Chrome({
+      headless: options.headless,
+    });
+
+    function consume (tab) {
+      return tab.evaluate(function () {
+        return ChromeQueue.splice(0, ChromeQueue.length);
+      });
+    }
+
+    var duration;
+    var finishedResult = {
+      failed: 0
+    };
+    var fails = [];
+    // All of this would be much more straightforward with async/await
+    browser.init()
+      .then(browser => browser.newTab({ privateTab: false }))
+      .then(tab => {
+        return tab.goTo(file)
+          // Return a promise that resolves when we get the FINISHED event from our ChromeReporter
+          .then(() => new Promise(resolve => {
+            // Periodically evaluate
+            var interval = setInterval(function () {
+              consume(tab)
+                .then(result => {
+                  var events = result.result.value;
+                  events.forEach(e => {
+                    if (e.type === 'JASMINE_STARTED') {
+                      duration = e.when;
+                    }
+                    if (e.type === 'FINISHED') {
+                      duration = e.when - duration;
+                    }
+                    if (e.type === 'SPEC_FINISHED') {
+                      if (e.payload.status === 'passed') {
+                        process.stdout.write('.') 
+                      } else if (e.payload.status === 'pending') {
+                        process.stdout.write('*');
+                      } else if (e.payload.status === 'failed') {
+                        process.stdout.write('x');
+                      }
+                      if (e.payload.failedExpectations.length > 0) {
+                        finishedResult.failed++;
+                        fails.concat(e.payload.failedExpectations);
+                      }
+                    }
+                    // process.stdout.write('.')
+                  })
+                  if (events.length > 0 && events[events.length - 1].type === 'FINISHED') {
+                    clearInterval(interval);
+                    resolve();
+                  }
+                })
+            }, 100);
+          }))
+          .then(() => { grunt.log.writeln('\nFinished testing (' + (duration / 1000) + ' seconds)')})
+          .then(() => browser.close())
+          .then(() => cb(false, finishedResult))
+      }
+      );
+  }
+
+  function phantomRunner(options, cb) {
+    var file = __fileOrHost(options);
 
     grunt.verbose.subhead('Testing Jasmine specs via PhantomJS').or.writeln('Testing Jasmine specs via PhantomJS');
     grunt.log.writeln('');
