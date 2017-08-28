@@ -76,6 +76,7 @@ module.exports = function(grunt) {
     var options = this.options({
       browser: 'phantomjs',
       headless: false,
+      chromePoll: 100,
       version: '2.2.0',
       timeout: 10000,
       styles: [],
@@ -157,6 +158,9 @@ module.exports = function(grunt) {
 
   function chromeRunner(options, cb) {
     var file = __fileOrHost(options);
+    var intervalId;
+    var lastEvent;
+    var exitReason = null;
 
     var message = 'Testing Jasmine specs via Chrome';
 
@@ -171,43 +175,59 @@ module.exports = function(grunt) {
       headless: options.headless,
     });
 
+    var emitChromeEvent = function (e) {
+      phantomjs.emit(e.type, e.payload);
+    };
+
     function consume (tab) {
-      return tab.evaluate(function () {
-        return ChromeQueue.splice(0, ChromeQueue.length); // jshint ignore:line
-      });
+      return tab.evaluate('function () { return ChromeQueue.splice(0, ChromeQueue.length); }');
+    }
+
+    function somethingWrong (what) {
+      cb(what.message, status);
     }
 
     // All of this would be much more straightforward with async/await
     browser.init()
-      .then(function (browser) { return browser.newTab(); })
-      .then(function (tab) {
-        return tab.goTo(file)
-          // Return a promise that resolves when we get the FINISHED event from our ChromeReporter
-          .then(function () { 
-            return new Promise(function (resolve) {
-              // Periodically evaluate
-              var interval = setInterval(function () {
-                consume(tab)
-                  .then(function (result) {
-                    var events = result.result.value;
-                    events.forEach(function (e) {
-                      phantomjs.emit(e.type, e.payload);
-                    });
-                    // Exit condition
-                    if (events.length > 0 && events[events.length - 1].type === 'jasmine.jasmineDone') {
-                      clearInterval(interval);
-                      resolve();
-                    }
-                  });
-              }, 100);
-            });
-          })
-          .then(function () {
-            return browser.close();
-          })
-          .then(function () { cb(false, status); });
-      }
-      );
+      .then(function (browser) { 
+        return browser.newTab()
+          .then(function (tab) {
+            lastEvent = new Date();
+            return tab.goTo(file)
+              // Return a promise that resolves when we get the FINISHED event from our ChromeReporter
+              .then(function () { 
+                return new Promise(function (resolve) {
+                  // Periodically evaluate
+                  intervalId = setInterval(function () {
+                    var date = new Date();
+                    consume(tab)
+                      .then(function (result) {
+                        var events = result.result.value;
+                        if (!events || events.length === 0) {
+                          if (date - lastEvent > options.timeout) {
+                            clearInterval(intervalId);
+                            exitReason = 'Chrome has timed out';
+                            resolve();
+                          }
+                        } else {
+                          lastEvent = date;
+                          events.forEach(emitChromeEvent);
+                          // Exit condition
+                          if (events.length > 0 && events[events.length - 1].type === 'jasmine.jasmineDone') {
+                            clearInterval(intervalId);
+                            resolve();
+                          }
+                        }
+                      });
+                  }, options.chromePoll);
+                });
+              })
+              .then(function () {
+                return browser.close();
+              })
+              .then(function () { cb(exitReason, status); });
+          });
+      }, somethingWrong);
   }
 
   function phantomRunner(options, cb) {
