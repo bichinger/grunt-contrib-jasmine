@@ -8,6 +8,7 @@
   }
 
   var ChromeReporter = {
+    lastSpecStartTime: null,
     jasmineStarted: function (suiteInfo) {
       console.log('Jasmine started: ', new Date().toString());
       pushToQueue({
@@ -23,12 +24,14 @@
       });
     },
     specStarted: function (result) {
+      this.lastSpecStartTime = new Date();
       pushToQueue({
         type: 'jasmine.specStarted',
         payload: result
       });
     },
     specDone: function (result) {
+      result.duration = new Date() - this.lastSpecStartTime;
       pushToQueue({
         type: 'jasmine.specDone',
         payload: result

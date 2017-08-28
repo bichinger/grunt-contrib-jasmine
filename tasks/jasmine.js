@@ -77,6 +77,7 @@ module.exports = function(grunt) {
       browser: 'phantomjs',
       headless: false,
       chromePoll: 100,
+      reportSlowerThan: -1,
       version: '2.2.0',
       timeout: 10000,
       styles: [],
@@ -269,6 +270,7 @@ module.exports = function(grunt) {
         tabstop = 2,
         thisRun = {},
         suites = {},
+        slowSpecs = [],
         currentSuite;
 
     status.failed = 0;
@@ -365,6 +367,11 @@ module.exports = function(grunt) {
         time: specMetaData.duration / 1000,
         failureMessages: []
       };
+
+      if (options.reportSlowerThan !== -1 &&
+          specMetaData.duration > options.reportSlowerThan) {
+        slowSpecs.push(specMetaData);
+      }
 
       suites[currentSuite].tests++;
 
@@ -463,6 +470,14 @@ module.exports = function(grunt) {
       if (options.summary && thisRun.summary.length) {
         grunt.log.writeln();
         logSummary(thisRun.summary);
+      }
+
+      if (options.reportSlowerThan !== -1 && slowSpecs.length > 0) {
+        grunt.log.writeln(chalk.yellow('Some specs were slower than ' + options.reportSlowerThan + ' ms:'));
+        grunt.log.writeln();
+        _.forEach(slowSpecs, function (slowSpec) {
+          grunt.log.writeln(chalk.yellow(slowSpec.fullName) + chalk.red(' (' + slowSpec.duration + ' ms)'));
+        })
       }
 
       if (options.junit && options.junit.path) {
