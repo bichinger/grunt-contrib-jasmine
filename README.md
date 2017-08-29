@@ -1,6 +1,6 @@
 # grunt-contrib-jasmine v1.1.0 [![Build Status: Linux](https://travis-ci.org/gruntjs/grunt-contrib-jasmine.svg?branch=master)](https://travis-ci.org/gruntjs/grunt-contrib-jasmine) [![Build Status: Windows](https://ci.appveyor.com/api/projects/status/5985958by5rhnh31/branch/master?svg=true)](https://ci.appveyor.com/project/gruntjs/grunt-contrib-jasmine/branch/master)
 
-> Run jasmine specs headlessly through PhantomJS
+> Run jasmine specs headlessly
 
 
 
@@ -24,7 +24,7 @@ grunt.loadNpmTasks('grunt-contrib-jasmine');
 ## Jasmine task
 _Run this task with the `grunt jasmine` command._
 
-Automatically builds and maintains your spec runner and runs your tests headlessly through PhantomJS.
+Automatically builds and maintains your spec runner and runs your tests headlessly.
 
 #### Run specs locally or on a remote server
 
@@ -98,7 +98,7 @@ Automatically deleted upon normal runs.
 Type: `String`  
 Default: `_SpecRunner.html`
 
-The auto-generated specfile that phantomjs will use to run your tests.
+The auto-generated specfile that the browser will use to run your tests.
 Automatically deleted upon normal runs. Use the `:build` flag to generate a SpecRunner manually e.g.
 `grunt jasmine:myTask:build`
 
@@ -130,7 +130,7 @@ Specify a custom JUnit template instead of using the default `junitTemplate`.
 Type: `String`  
 Default: `''`
 
-The host you want PhantomJS to connect against to run your tests.
+The host you want the browser to connect against to run your tests.
 
 e.g. if using an ad hoc server from within grunt
 
@@ -174,6 +174,33 @@ Type: `Boolean`
 Default: `false`
 
 Display a list of all failed tests and their failure messages
+
+#### options.browser
+Type: `String`
+Default: `phantomjs`
+
+Which headless browser to use. Supported options are:
+
+  * `phantomjs` runs your tests through PhantomJS
+  * `chrome` runs your tests through Chrome. See the headless option
+
+#### options.headless
+Type: `Boolean`
+Default: `false`
+
+Whether Chrome should be started headlessly or not. Requires Chrome 59
+
+#### options.chromePoll
+Type: `Number`
+Default: `100`
+
+Frequency (in milliseconds) in which the plugin polls Chrome for updates on the specs.
+
+#### options.reportSlowerThan
+Type: `Number`
+Default: `-1`
+
+If a spec is takes longer than this option it will be printed out after the run ends. Unit is milliseconds.
 
 ### Flags
 
