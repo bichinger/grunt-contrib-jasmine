@@ -250,7 +250,7 @@ module.exports = function(grunt) {
     removePhantomListeners();
 
     if (!options.keepRunner && fs.statSync(options.outfile).isFile()) {
-      fs.unlink(options.outfile);
+      fs.unlink(options.outfile, function(){}); // Workaround no callback deprecation notice in node 7.x
     }
 
     if (!options.keepRunner) {
