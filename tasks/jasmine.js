@@ -172,9 +172,16 @@ module.exports = function(grunt) {
     grunt.verbose.subhead(message).or.writeln(message);
     grunt.log.writeln('');
 
-    var browser = new Chrome({
-      headless: options.headless,
-    });
+    var chromeOptions = {
+        headless: options.headless,
+    };
+    if(options.chrome){
+        chromeOptions.chrome = options.chrome;
+    }
+    if(options.launchChrome){
+        chromeOptions.launchChrome = options.launchChrome;
+    }
+    var browser = new Chrome(chromeOptions);
 
     var emitChromeEvent = function (e) {
       phantomjs.emit(e.type, e.payload);
