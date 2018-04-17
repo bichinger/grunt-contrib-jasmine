@@ -175,10 +175,10 @@ module.exports = function(grunt) {
     var chromeOptions = {
         headless: options.headless,
     };
-    if(options.chrome){
+    if(typeof options.chrome !== 'undefined'){
         chromeOptions.chrome = options.chrome;
     }
-    if(options.launchChrome){
+    if(typeof options.launchChrome !== 'undefined'){
         chromeOptions.launchChrome = options.launchChrome;
     }
     var browser = new Chrome(chromeOptions);
