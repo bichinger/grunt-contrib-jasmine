@@ -21,7 +21,7 @@
     "jasmine-core": "~2.4.0",
     "lodash": "~2.4.1",
     "rimraf": "^2.1.4",
-    "simple-headless-chrome": "^4.3.1",
+    "simple-headless-chrome": "git://github.com/bichinger/simple-headless-chrome.git#master",
     "sprintf-js": "~1.0.3"
   },
   "devDependencies": {
