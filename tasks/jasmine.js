@@ -205,12 +205,16 @@ module.exports = function(grunt) {
               // Return a promise that resolves when we get the FINISHED event from our ChromeReporter
               .then(function () { 
                 return new Promise(function (resolve) {
+                  grunt.verbose.writeln('Opened Tab');
                   // Periodically evaluate
                   intervalId = setInterval(function () {
+                    grunt.verbose.writeln('Got into Promise');
                     var date = new Date();
                     consume(tab)
                       .then(function (result) {
                         var events = result.result.value;
+                        grunt.verbose.writeln('Got Following Events');
+                        grunt.verbose.writeln(JSON.stringify(events,null, 2));
                         if (!events || events.length === 0) {
                           if (date - lastEvent > options.timeout) {
                             clearInterval(intervalId);
