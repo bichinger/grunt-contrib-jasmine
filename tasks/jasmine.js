@@ -477,7 +477,7 @@ module.exports = function(grunt) {
         grunt.log.writeln();
         _.forEach(slowSpecs, function (slowSpec) {
           grunt.log.writeln(chalk.yellow(slowSpec.fullName) + chalk.red(' (' + slowSpec.duration + ' ms)'));
-        })
+        });
       }
 
       if (options.junit && options.junit.path) {
