@@ -231,7 +231,11 @@ module.exports = function(grunt) {
                 });
               })
               .then(function () {
-                return browser.close();
+                if(!options.launchChrome){
+                    return tab.close();
+                }else{
+                    return browser.close();
+                }
               })
               .then(function () { cb(exitReason, status); });
           });
